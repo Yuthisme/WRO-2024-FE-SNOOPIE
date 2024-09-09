@@ -6,18 +6,11 @@
 #include <utility/imumaths.h>
 #include <SPI.h>
 
-// BNO055 sensor object
 Adafruit_BNO055 bno = Adafruit_BNO055();
 Servo myservo;
 
 // Sample rate delay for BNO055 (IMU)
 uint16_t BNO055_SAMPLERATE_DELAY_MS = 100;
-
-// Define pins for ultrasonic sensors
-const int trigPin1 = 9;
-const int echoPin1 = 10;
-const int trigPin3 = 11;
-const int echoPin3 = 12;
 
 // TOF sensor distances
 uint32_t TOF_distance = 0;
@@ -34,35 +27,36 @@ struct Packet {
   uint16_t end_seq;
 };
 
-// Create a variable to store the received packet
+// Packet to store the received data
 struct Packet rx_packet;
 
-int turn_count = 0;  // Counter for 90-degree turns
-int error = 0;       // Error variable for PID control
-float imu_initial = 0; // Initial IMU orientation
-float imu_current = 0; // Current IMU orientation
-
-bool car_started = false;  // Flag to check if car should start
-const int buttonPin = 6;   // Button pin
+int turn_count = 0;          // Counter for 90-degree turns
+int error = 0;               // Error for PID control
+double prevValue = 0;        // Previous IMU roll value
+double rollValue = 0;        // Current IMU roll value
+double delta_omega = 0;      // Change in roll
+bool car_started = false;    // Flag to check if car should start
+const int buttonPin = 6;     // Button pin
 
 void setup() {
   Wire.begin();
   Wire.setClock(10000);
-  // Initialize servo and write initial position
+  
+  // Initialize servo and set initial position
   myservo.attach(7);
   myservo.write(65);
   
-  // Initialize serial ports for communication
+  // Initialize serial communication
   Serial.begin(115200);
   Serial2.begin(115200);
   
-  // Initialize ultrasonic sensor pins
+  // Set up ultrasonic sensor pins
   pinMode(trigPin1, OUTPUT);
   pinMode(echoPin1, INPUT);
   pinMode(trigPin3, OUTPUT);
   pinMode(echoPin3, INPUT);
 
-  pinMode(buttonPin, INPUT);  // Button input pin
+  pinMode(buttonPin, INPUT);  // Button input
 
   // Initialize BNO055 (IMU sensor)
   if (!bno.begin()) {
@@ -72,88 +66,66 @@ void setup() {
 
   Serial.println("BNO055 connection successful");
 
-  // Set IMU mode to NDOF (Nine Degrees of Freedom)
+  // Set IMU to NDOF mode
   bno.setMode(adafruit_bno055_opmode_t::OPERATION_MODE_NDOF);
 }
 
 void loop() {
-  // Read the button state
+  // Check button state to start the car
   int buttonState = digitalRead(buttonPin);
-  
-  // Start the car when the button is pressed (HIGH state)
   if (buttonState == HIGH) {
     car_started = true;
   }
 
-  // If the car has not started, do nothing
+  // If the car hasn't started, do nothing
   if (!car_started) {
-    return;  // Wait for button press
+    return;
   }
 
-  // Read IMU orientation
-  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-  imu_current = euler.x();  // Roll orientation
-
-  // Check if data is available to read from Serial2 (TOF data)
+  // Check for incoming TOF data
   if (Serial2.available() >= sizeof(rx_packet)) {
     byte buffer[sizeof(rx_packet)];
     Serial2.readBytes(buffer, sizeof(buffer));
     
-    // Debugging raw packet data
-    Serial.print("Raw packet data: ");
-    for (int i = 0; i < sizeof(buffer); i++) {
-      Serial.print(buffer[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
-
     // Copy received data into the structure
     memcpy(&rx_packet, buffer, sizeof(rx_packet));
 
-    // Validate received packet and process TOF data
+    // Validate and process TOF data
     if (rx_packet.start_seq == 0x0210) {
-      Serial.print("TOF 1: ");
-      Serial.println(rx_packet.tx_data.tof_1);
-      Serial.print("TOF 2: ");
-      Serial.println(rx_packet.tx_data.tof_2);
-      TOF_distance = rx_packet.tx_data.tof_1;  // Example: assign TOF_distance
-      TOF_distance1 = rx_packet.tx_data.tof_2; // Example: assign TOF_distance1
-    } else {
-      Serial.println("Invalid packet received.");
+      TOF_distance = rx_packet.tx_data.tof_1;
+      TOF_distance1 = rx_packet.tx_data.tof_2;
     }
   }
 
-  // Check if the TOF sensor detects a gap larger than 200 cm
+  // Turn the car if a gap is detected (TOF_distance > 200 cm)
   if (TOF_distance > 2000 && turn_count < 12) {
     Serial.println("Gap detected! Turning...");
-    
-    // Record initial IMU orientation
-    imu_initial = imu_current;
-    
-    // Turn until the IMU detects a 90-degree turn
-    while (abs(imu_current - imu_initial) < 90) {
-      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-      imu_current = euler.x();  // Update IMU orientation
 
-      // Example motor control to turn the car
+    // Perform a 90-degree turn using IMU data
+    double target_heading = rollValue + 90;
+    target_heading = normDiff(degreesToRadians(target_heading));
+
+    while (abs(error_omega(target_heading)) > 1) {
+      // Continue turning until IMU difference reaches 90 degrees
       analogWrite(2, 250);  // Left wheel motor speed
       analogWrite(3, 0);    // Right wheel motor speed
-      
-      // Optionally, add PID control here for smoother turning
       delay(BNO055_SAMPLERATE_DELAY_MS);
     }
 
-    // Stop the car after the turn is complete
+    // Stop the car after the turn
     analogWrite(2, 0);
     analogWrite(3, 0);
-    delay(3000);  // 3-second delay to stop the car
+    delay(3000);  // 3-second stop
 
-    // Increase turn count after a successful turn
+    // Increase the turn count
     turn_count++;
+    Serial.print("Turn count: ");
+    Serial.println(turn_count);
   }
 
   // Stop the car after 12 turns
   if (turn_count >= 12) {
+    Serial.println("12 turns completed. Stopping the car.");
     analogWrite(2, 0);
     analogWrite(3, 0);
     while (true);  // Stop execution indefinitely
@@ -162,3 +134,5 @@ void loop() {
   // Delay for sensor sampling
   delay(BNO055_SAMPLERATE_DELAY_MS);
 }
+
+
