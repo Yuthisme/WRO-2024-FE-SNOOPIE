@@ -3,7 +3,7 @@ WRO 2024 SNOOPIE
 
 ## Introduction
 
-Hello and welcome to the github repository of our team Snoopie. Our team has been working hard for this year's WRO competition, there has been many issues that we faced during these time. One of it being managing time from school to build and develop our robot. You can find more information of our project below in thhe content area.
+Hello and welcome to the github repository of our team Snoopie. Our team has been working hard for this year's WRO competition, there has been many issues that we faced during these time. One of it being managing time from school to build and develop our robot. You can find more information of our project below in the content area.
 
 ## Contents
 
