@@ -136,7 +136,7 @@ void loop() {
       imu_current = euler.x();  // Update IMU orientation
 
       // Example motor control to turn the car
-      analogWrite(2, 150);  // Left wheel motor speed
+      analogWrite(2, 250);  // Left wheel motor speed
       analogWrite(3, 0);    // Right wheel motor speed
       
       // Optionally, add PID control here for smoother turning
@@ -150,13 +150,10 @@ void loop() {
 
     // Increase turn count after a successful turn
     turn_count++;
-    Serial.print("Turn count: ");
-    Serial.println(turn_count);
   }
 
   // Stop the car after 12 turns
   if (turn_count >= 12) {
-    Serial.println("12 turns completed. Stopping the car.");
     analogWrite(2, 0);
     analogWrite(3, 0);
     while (true);  // Stop execution indefinitely
