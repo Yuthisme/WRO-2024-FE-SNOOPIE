@@ -1,18 +1,22 @@
-Engineering materials
+WRO 2024 SNOOPIE
 ====
-
-This repository contains engineering materials of a self-driven vehicle's model participating in the WRO Future Engineers competition in the season 2024.
-
-## Content
-
-* `t-photos` contains 2 photos of the team (an official one and one funny photo with all team members)
-* `v-photos` contains 6 photos of the vehicle (from every side, from top and bottom)
-* `video` contains the video.md file with the link to a video where driving demonstration exists
-* `schemes` contains one or several schematic diagrams in form of JPEG, PNG or PDF of the electromechanical components illustrating all the elements (electronic components and motors) used in the vehicle and how they connect to each other.
-* `src` contains code of control software for all components which were programmed to participate in the competition
-* `models` is for the files for models used by 3D printers, laser cutting machines and CNC machines to produce the vehicle elements. If there is nothing to add to this location, the directory can be removed.
-* `other` is for other files which can be used to understand how to prepare the vehicle for the competition. It may include documentation how to connect to a SBC/SBM and upload files there, datasets, hardware specifications, communication protocols descriptions etc. If there is nothing to add to this location, the directory can be removed.
 
 ## Introduction
 
-_This part must be filled by participants with the technical clarifications about the code: which modules the code consists of, how they are related to the electromechanical components of the vehicle, and what is the process to build/compile/upload the code to the vehicle’s controllers._
+Hello and welcome to the github repository of our team Snoopie. Our team has been working hard for this year's WRO competition, there has been many issues that we faced during these time. One of it being managing time from school to build and develop our robot. You can find more information of our project below in thhe content area.
+
+## Contents
+
+* `t-photos` 4 photos of our team including 2 with the coach (funny and normal)
+* `v-photos` 6 photos of our car from all 6 sides
+* `video` Youtube link to our car demonstration
+* `schemes` contain our board design
+* `src` our codes
+* `models` 3D designs, and lazer cutting as such.
+* `other` Component listing
+
+## Members
+- Leangheng Vongchhayyuth 
+- Bunchhoeun Rattanakboth
+- Sreng Kimroathpiseth 
+
