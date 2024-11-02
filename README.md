@@ -15,7 +15,7 @@ Hello and welcome to the github repository of our team Snoopie. Our team has bee
 
 ## 2. Contents
 
-* `t-photos` 4 photos of our team including 2 with the coach (funny and normal)
+* `t-photos` 3 photos of our team including 1 with the coach (funny and normal)
 * `v-photos` 6 photos of our car from all 6 sides
 * `video` Youtube link to our car demonstration
 * `schemes` contain our board design
