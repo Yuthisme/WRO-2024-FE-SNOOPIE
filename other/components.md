@@ -1,12 +1,11 @@
-2 Ultrasonic sensors
-2 TOF Rangefinders
-1 Servo motor
-1 Adafruit BMC005 IMU
-1 MCP2515_CAN
+1 rasberry pi 5
+1 Logitech Full HD 1080 Webcam
+1 Lidar Sensor
+1 Adafruit IMU Fusion BNO05
+1 LiPo Battery Pack 11.1V 1800mAh
 1 L298N Motor driver
-1 Pixy cam 2.0
 1 switch
 1 push button
-1 Arduino Mega Pro
-1 Arduino Nano
-5 Batteries
+1 Buck converter
+1 motor
+1 Lidar driver esp 8266
