@@ -10,4 +10,4 @@
 | push button | 1  |
 | Buck converter  | 1  |
 | motor  | 1  |
-| motor  | 1  |
+| lidar driver esp8266  | 1  |
