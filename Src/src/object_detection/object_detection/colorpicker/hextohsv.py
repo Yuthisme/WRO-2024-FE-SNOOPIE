@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 # Hex color #7e4033
-hex_color = '#697335'
+hex_color = '#7a9047'
 
 # Convert hex to BGR
 bgr_color = np.array([int(hex_color[i:i+2], 16) for i in (5, 3, 1)], dtype=np.uint8)

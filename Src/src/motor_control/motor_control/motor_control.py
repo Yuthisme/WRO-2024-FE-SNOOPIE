@@ -12,12 +12,13 @@ class Motor:
         self.IN4 = OutputDevice(24)
         self.pwm1 = PWMOutputDevice(12)
         self.pwm2 = PWMOutputDevice(13)
-        self.servo = AngularServo(14, min_angle=0, max_angle=60, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000, initial_angle=None)
+        self.servo = AngularServo(14, min_angle=0, max_angle=37, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000, initial_angle=None)
 
+        # self.button = gpiozero.Button(27)
 
 
   
-    def forward(self, speed):
+    def reverse(self, speed):
         # Set the motor speed for forward direction
         self.pwm1.value = speed
         self.pwm2.value = speed
@@ -26,7 +27,7 @@ class Motor:
         self.IN3.value = True
         self.IN4.value = False
 
-    def reverse(self, speed):
+    def forward(self, speed):
         # Set the motor speed for reverse direction
         self.pwm1.value = speed
         self.pwm2.value = speed

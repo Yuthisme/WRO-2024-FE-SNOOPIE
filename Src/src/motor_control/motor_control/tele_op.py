@@ -13,7 +13,7 @@ class TeleopNode(Node):
 
         # Initial values for speed and angle
         self.speed = 0.5  # Default speed
-        self.angle = 50.0  # Initial angle
+        self.angle = 14.0  # Initial angle
 
     def get_key(self):
         """Capture key press from the terminal without waiting for Enter."""
@@ -41,34 +41,42 @@ class TeleopNode(Node):
     def run(self):
         """Main loop to capture input and send motor commands."""
         self.get_logger().info("Use 'w' to move forward, 's' to move reverse, 'x' to stop, 'a' to decrease angle, 'd' to increase angle, 'q' to quit.")
-        
+        fw = False
+        bw = False
         try:
             while True:
+                
                 key = self.get_key()
-
+                # self.send_motor_command(speed=0.0, forward=False, reverse=False, stop=True, angle=self.angle)
                 if key == 'w':
                     # Move forward
                     self.speed = 0.5 
-                    self.send_motor_command(self.speed, forward=True, reverse=False, stop=False, angle=self.angle)
+                    fw = True
+                    bw = False
+                    self.send_motor_command(self.speed, forward=fw, reverse=bw, stop=False, angle=self.angle)
                 elif key == 's':
                     # Move reverse
-                    self.speed = 0.5 
-                    self.send_motor_command(self.speed, forward=False, reverse=True, stop=False, angle=self.angle)
+                    self.speed = 0.5
+                    fw = False
+                    bw = True
+                    self.send_motor_command(self.speed, forward=fw, reverse=bw, stop=False, angle=self.angle)
                 elif key == 'x':
                     # Stop the motor
+                    fw = False
+                    bw = False
                     self.send_motor_command(speed=0.0, forward=False, reverse=False, stop=True, angle=self.angle)
                 elif key == 'a':
                     # Decrease angle
                     
                     self.angle = max(0.0, self.angle - 1)  # Ensure angle doesn't go below 0
                     self.get_logger().info(f"Decreasing angle: {self.angle}")
-                    self.send_motor_command(self.speed, forward=False, reverse=True, stop=False, angle=self.angle)
+                    self.send_motor_command(self.speed, forward=fw, reverse=bw, stop=False, angle=self.angle)
                 elif key == 'd':
                     # Increase angle
                     
                     self.angle = min(100, self.angle + 1)  # Ensure angle doesn't go above 100
                     self.get_logger().info(f"Increasing angle: {self.angle}")
-                    self.send_motor_command(self.speed, forward=False, reverse=True, stop=False, angle=self.angle)
+                    self.send_motor_command(self.speed, forward=fw, reverse=bw, stop=False, angle=self.angle)
                 elif key == 'q':
                     # Quit the program
                     self.get_logger().info("Quitting teleop.")

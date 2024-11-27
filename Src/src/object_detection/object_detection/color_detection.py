@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Point
@@ -10,117 +9,144 @@ class ObjectDetectionPublisher(Node):
     def __init__(self):
         super().__init__('object_detection_publisher')
         self.publisher_ = self.create_publisher(Point, '/object_detection', 10)
-        timer_period = 0.01  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timer = self.create_timer(0.01, self.timer_callback)
 
         # Initialize the webcam
         self.cap = cv.VideoCapture(0)
 
-        # Define color ranges for red and green in HSV
-        self.lower_red = np.array([169,  50,  50])
-        self.upper_red = np.array([189, 255, 255])
+        # HSV ranges
+        self.lower_red1 = np.array([0, 50, 50])     # Lower red range
+        self.upper_red1 = np.array([10, 255, 255])  # Lower red range
+        self.lower_red2 = np.array([170, 50, 50])   # Upper red range
+        self.upper_red2 = np.array([180, 255, 255]) # Upper red range
 
-        # Lower Bound: [169  50  50]
-        # Upper Bound: [189 255 255]
-
-        self.lower_green = np.array([25, 50, 50])
-        self.upper_green = np.array([45, 255, 255])
-
-        # Lower Bound: [25 50 50]
-        # Upper Bound: [ 45 255 255]   
-
-        # message 
-        self.msg_data = []
-             
+        self.lower_green = np.array([40, 50, 50])   # Green range
+        self.upper_green = np.array([70, 255, 255]) # Green range
 
     def timer_callback(self):
-
-        self.object_detection()
-        self.stop_object_detection()
-
-        if self.msg_data == []:
-            return
-        
-        msg = Point()
-        msg.x = float(self.msg_data[0])
-        msg.y = float(self.msg_data[1])
-        if self.msg_data[2] == "red":       
-            msg.z = float(0)
-        elif self.msg_data[2] == "green":
-            msg.z = float(1)
-
-        self.publisher_.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg)
-
-    def object_detection(self):
-        # Capture frame-by-frame
         ret, frame = self.cap.read()
-        
         if not ret:
-            self.get_logger().info('No frame')
+            self.get_logger().info('No frame captured')
+            return
 
-        # Convert image to RGB for display purposes
-        image_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-
-        # Convert to HSV for better color detection
         hsv_image = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
 
-        # Create masks for red and green colors
-        red_mask = cv.inRange(hsv_image, self.lower_red, self.upper_red)
+        # Red mask with wrap-around handling
+        red_mask1 = cv.inRange(hsv_image, self.lower_red1, self.upper_red1)
+        red_mask2 = cv.inRange(hsv_image, self.lower_red2, self.upper_red2)
+        red_mask = cv.bitwise_or(red_mask1, red_mask2)
+
+        # Green mask
         green_mask = cv.inRange(hsv_image, self.lower_green, self.upper_green)
 
-        # Find contours for both red and green masks
-        contours_red, _ = cv.findContours(red_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        contours_green, _ = cv.findContours(green_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        # Combine masks
+        combined_mask = cv.bitwise_or(red_mask, green_mask)
 
-        # Set a minimum area threshold to filter noise
-        min_area_red = 1000  # Adjust for large red objects
-        min_area_green = 1000  # Adjust for large green objects
+        # Process all objects in the combined mask
+        self.detect_and_publish_combined(frame, combined_mask, red_mask, green_mask)
 
-        # Filter red and green contours based on area
-        contours_red_filtered = [cnt for cnt in contours_red if cv.contourArea(cnt) > min_area_red]
-        contours_green_filtered = [cnt for cnt in contours_green if cv.contourArea(cnt) > min_area_green]
+        # Display the frame
+        # cv.imshow("Pillar Detection", frame)
+        """
+        uncomment this to see it on your monitor
+        """
+        # if cv.waitKey(1) & 0xFF == ord('q'):
+        #     self.cap.release()
+        #     cv.destroyAllWindows()
 
-        # Draw rectangles around large detected red objects
-        for contour in contours_red_filtered:
+    def detect_and_publish_combined(self, frame, combined_mask, red_mask, green_mask):
+        contours, _ = cv.findContours(combined_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        min_area = 1000
+
+        detected_objects = []  # List to store detected objects
+        frame_height, frame_width = frame.shape[:2]  # Get the dimensions of the frame
+        frame_center_x = frame_width // 2  # Get the horizontal center of the frame
+
+        # Define the blue rectangle at the bottom of the frame
+        rectangle_width = 100
+        rectangle_height = 50
+        rectangle_start_x = frame_center_x - rectangle_width // 2
+        rectangle_end_x = frame_center_x + rectangle_width // 2
+        rectangle_center_x = (rectangle_start_x + rectangle_end_x) // 2  # Center of the blue rectangle
+
+        # Draw a blue reference rectangle at the bottom of the frame with fixed width
+        cv.rectangle(frame, 
+                    (rectangle_start_x, frame_height - rectangle_height), 
+                    (rectangle_end_x, frame_height), 
+                    (255, 0, 0), -1)
+            
+
+        for contour in contours:
+            if cv.contourArea(contour) < min_area:
+                continue
+
+            # Determine bounding box and centroid
             x, y, w, h = cv.boundingRect(contour)
-            mid_x = x + w/2
-            mid_y = y + h/2
-            self.msg_data = [mid_x, mid_y, "red"]
-            cv.rectangle(image_rgb, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            centroid_x = x + w / 2
+            centroid_y = y + h / 2
 
-        # Draw rectangles around large detected green objects
-        for contour in contours_green_filtered:
-            x, y, w, h = cv.boundingRect(contour)
-            mid_x = x + w/2
-            mid_y = y + h/2
-            self.msg_data = [mid_x, mid_y, "green"]
-            cv.rectangle(image_rgb, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            # Determine the color of the object
+            mask_roi = combined_mask[y:y + h, x:x + w]
+            red_overlap = cv.countNonZero(cv.bitwise_and(mask_roi, red_mask[y:y + h, x:x + w]))
+            green_overlap = cv.countNonZero(cv.bitwise_and(mask_roi, green_mask[y:y + h, x:x + w]))
 
-        # Display the result
-        cv.imshow("Color Detection", cv.cvtColor(image_rgb, cv.COLOR_RGB2BGR))
+            if red_overlap > green_overlap:
+                color = "red"
+                display_color = (0, 0, 255)
+            else:
+                color = "green"
+                display_color = (0, 255, 0)
 
-        
+            # Estimate distance using the width of the bounding box
+            distance = 1 / (w + 1e-6)  # Smaller width -> farther away
 
-    def stop_object_detection(self):
-        # Break the loop on 'q' key press
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            # Release the webcam and close windows
-            self.cap.release()
-            cv.destroyAllWindows()
+            # Draw a rectangle and vertical line for the detected object
+            # cv.rectangle(frame, (x, y), (x + w, y + h), display_color, 2)
+            cv.line(frame, (int(centroid_x), 0), (int(centroid_x), frame.shape[0]), display_color, 2)
 
+            # Append detected object
+            detected_objects.append((distance, centroid_x, centroid_y, color))
+        self.get_logger().info(f"Detected {len(detected_objects)} objects.")
+
+        # Publish each detected object
+        detected_objects.sort(key=lambda obj: obj[0])
+
+        # Publish data only for the closest object
+        if detected_objects:
+            closest_object = detected_objects[0]  # The closest object will be at index 0
+            distance, centroid_x, centroid_y, color = closest_object
+
+            # Calculate the horizontal distance from the center of the blue rectangle
+            distance_from_rectangle_center = centroid_x - rectangle_center_x
+
+
+
+            # Publish data
+            msg = Point()
+            if color == 'red':
+                msg.x = 1.0
+            elif color == 'green':
+                msg.x = 0.0
+            # else:
+            #     msg.x = -1.0
+            msg.y = distance
+            msg.z = distance_from_rectangle_center  # Positive if left, negative if right
+            self.publisher_.publish(msg)
+
+            self.get_logger().info(f"Detected {color} pillar at x: {centroid_x}, "
+                                f"distance from rectangle center: {distance_from_rectangle_center:.4f}")
+        else:
+            msg = Point()
+            msg.x = -1.0
+            msg.y = 0.0
+            msg.z = 0.0
+            self.publisher_.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
-
-    object_detection_publisher = ObjectDetectionPublisher()
-
-    rclpy.spin(object_detection_publisher)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    object_detection_publisher.destroy_node()
+    node = ObjectDetectionPublisher()
+    rclpy.spin(node)
+    node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
